@@ -20,6 +20,8 @@ on:
   push:
     branches:
     - master
+    - dev
+    - 'dev/**'
     paths:
     - 'tur/**'
     - 'tur-multilib/**'
@@ -37,7 +39,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       ANDROID_HOME: "/opt/termux/android-sdk"
       NDK: "/opt/termux/android-ndk"
@@ -168,9 +170,9 @@ jobs:
         done
     - name: Free additional disk space (if necessary)
       run: |
-        if grep -q '^demo-package1$\|^demo-package2$\$' ./built_tur_packages.txt; then
-          sudo apt purge -yq $(dpkg -l | grep '^ii' | awk '{ print $2 }' | grep -P '(cabal-|dotnet-|ghc-|libmono|php|aspnetcore)') \
-            mono-runtime-common monodoc-manual ruby
+        if grep -Eq "^($(paste -s -d '|' ./big-pkgs.list))$" ./built_tur_packages.txt; then
+          sudo apt purge -yq $(dpkg -l | grep '^ii' | awk '{ print $2 }' | grep -P '(aspnetcore|cabal-|dotnet-|ghc-|libmono|mongodb-|mysql-|php)') \
+            firefox google-chrome-stable microsoft-edge-stable mono-devel mono-runtime-common monodoc-manual ruby
           sudo apt autoremove -yq
           sudo rm -rf /opt/hostedtoolcache /usr/local /usr/share/dotnet /usr/share/swift
         fi
@@ -231,7 +233,7 @@ jobs:
         path: ./artifacts
 
   upload:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref != 'refs/heads/dev' && !startsWith(github.ref, 'refs/heads/dev/')
     needs: build
     runs-on: ubuntu-latest
     steps:

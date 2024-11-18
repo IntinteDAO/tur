@@ -3,6 +3,7 @@ TERMUX_PKG_DESCRIPTION="WireGuard frontend for mitmproxy"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_MAINTAINER="@termux-user-repository"
 TERMUX_PKG_VERSION="0.1.23"
+TERMUX_PKG_REVISION=1
 TERMUX_PKG_SRCURL=https://github.com/decathorpe/mitmproxy_wireguard/archive/refs/tags/$TERMUX_PKG_VERSION.tar.gz
 TERMUX_PKG_SHA256=29eac8ffcb235194b9f1aba9e0fe3e024aa8417427005eabeb30c1870c808b35
 TERMUX_PKG_AUTO_UPDATE=true
@@ -37,5 +38,5 @@ termux_step_make_install() {
 			./target/wheels/mitmproxy_wireguard-$TERMUX_PKG_VERSION-py37-none-any.whl
 	fi
 
-	pip install --no-deps ./target/wheels/*.whl --prefix $TERMUX_PREFIX 
+	pip install --no-deps ./target/wheels/*.whl --prefix $TERMUX_PREFIX
 }

@@ -3,10 +3,9 @@ _MAJOR_VERSION=3.9
 TERMUX_PKG_DESCRIPTION="Python programming language intended to enable clear programs (version $_MAJOR_VERSION)"
 TERMUX_PKG_LICENSE="PythonPL"
 TERMUX_PKG_MAINTAINER="@termux-user-repository"
-TERMUX_PKG_VERSION=${_MAJOR_VERSION}.16
-TERMUX_PKG_REVISION=1
+TERMUX_PKG_VERSION=${_MAJOR_VERSION}.20
 TERMUX_PKG_SRCURL=https://www.python.org/ftp/python/${TERMUX_PKG_VERSION}/Python-${TERMUX_PKG_VERSION}.tar.xz
-TERMUX_PKG_SHA256=22dddc099246dd2760665561e8adb7394ea0cc43a72684c6480f9380f7786439
+TERMUX_PKG_SHA256=6b281279efd85294d2d6993e173983a57464c0133956fbbb5536ec9646beaf0c
 TERMUX_PKG_DEPENDS="gdbm, libandroid-posix-semaphore, libandroid-support, libbz2, libcrypt, libffi, liblzma, libsqlite, ncurses, ncurses-ui-libs, openssl, readline, zlib"
 TERMUX_PKG_RECOMMENDS="clang, make, pkg-config"
 TERMUX_PKG_SUGGESTS="python${_MAJOR_VERSION}-tkinter"
@@ -47,9 +46,16 @@ TERMUX_PKG_EXTRA_HOSTBUILD_CONFIGURE_ARGS="
 --prefix=$TERMUX_PREFIX/opt/python$_MAJOR_VERSION/cross
 "
 
+# https://github.com/termux/termux-packages/issues/15908
+TERMUX_PKG_MAKE_PROCESSES=1
+
+TERMUX_PKG_UNDEF_SYMBOLS_FILES="
+./opt/python$_MAJOR_VERSION/cross/lib/python$_MAJOR_VERSION/lib-dynload/*.so
+"
+
 termux_step_host_build() {
 	$TERMUX_PKG_SRCDIR/configure $TERMUX_PKG_EXTRA_HOSTBUILD_CONFIGURE_ARGS
-	make -j $TERMUX_MAKE_PROCESSES
+	make -j $TERMUX_PKG_MAKE_PROCESSES
 	make altinstall
 }
 
@@ -100,6 +106,7 @@ termux_step_create_debscripts() {
 
 	echo "Setting up pip..."
 
+	cd ${TERMUX_PREFIX}/tmp
 	${TERMUX_PREFIX}/bin/python${_MAJOR_VERSION} -m ensurepip --altinstall --upgrade
 
 	exit 0
@@ -114,6 +121,7 @@ termux_step_create_debscripts() {
 	fi
 
 	echo "Uninstalling python modules..."
+	cd ${TERMUX_PREFIX}/tmp
 	pip${_MAJOR_VERSION} freeze 2>/dev/null | xargs pip${_MAJOR_VERSION} uninstall -y >/dev/null 2>/dev/null
 	rm -f $TERMUX_PREFIX/bin/pip${_MAJOR_VERSION} $TERMUX_PREFIX/bin/easy_install-${_MAJOR_VERSION}
 

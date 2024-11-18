@@ -2,27 +2,24 @@ TERMUX_PKG_HOMEPAGE=https://octave.org
 TERMUX_PKG_DESCRIPTION="GNU Octave is a high-level language, primarily intended for numerical computations. (with X11 support)"
 TERMUX_PKG_LICENSE="GPL-3.0"
 TERMUX_PKG_MAINTAINER="@termux-user-repository"
-TERMUX_PKG_VERSION=8.2.0
-TERMUX_PKG_SRCURL=https://ftpmirror.gnu.org/octave/octave-${TERMUX_PKG_VERSION}.tar.xz
-TERMUX_PKG_SHA256=b7b9d6e5004ff039450cfedd2a59ddbe2a3c22296df927a8af994182eb2670de
-TERMUX_PKG_DEPENDS="zlib, bzip2, openssl, libiconv, libandroid-glob, pcre, readline, libcurl, libhdf5, qhull, rapidjson, fftw, glpk, libopenblas, arpack-ng, qrupdate-ng, suitesparse, sundials, fontconfig, freetype, graphicsmagick, libsndfile, portaudio, fltk, mesa, glu"
-TERMUX_PKG_BUILD_DEPENDS="gnuplot, less"
-
-# Qt-GUI cannot be enabled, because `qcollectiongenerator` and
-# `qhelpgenerator` is not exist at host.
-#TERMUX_PKG_DEPENDS="zlib, bzip2, openssl, libiconv, libandroid-glob, pcre, readline, libcurl, libhdf5, qhull, rapidjson, fftw, glpk, libopenblas, arpack-ng, qrupdate-ng, suitesparse, sundials, fontconfig, freetype, graphicsmagick, libsndfile, portaudio, fltk, mesa, glu, qt5-qtbase, qt5-qttools, qscintilla""
-#TERMUX_PKG_BUILD_DEPENDS="gnuplot, less, qt5-qtbase-cross-tools, qt5-qttools-cross-tools"
-
+TERMUX_PKG_VERSION=1:9.2.0
+TERMUX_PKG_SRCURL=https://ftpmirror.gnu.org/octave/octave-${TERMUX_PKG_VERSION#*:}.tar.xz
+TERMUX_PKG_SHA256=21417afb579105b035cac0bea09201522e384893ae90a781b8727efa32765807
+TERMUX_PKG_DEPENDS="arpack-ng, bzip2, fftw, fltk, fontconfig, freetype, glpk, glu, graphicsmagick, libcurl, libhdf5, libiconv, libopenblas, libsndfile, opengl, openssl, pcre2, portaudio, qhull, qrupdate-ng, qt6-qtbase, qt6-qttools, qt6-qt5compat, rapidjson, readline, suitesparse, sundials, zlib"
+TERMUX_PKG_BUILD_DEPENDS="gnuplot, less, qt6-qtbase-cross-tools, qt6-qttools-cross-tools"
 TERMUX_PKG_RECOMMENDS="gnuplot, less"
 TERMUX_PKG_CONFLICTS="octave"
 TERMUX_PKG_BUILD_IN_SRC=true
 TERMUX_PKG_EXTRA_CONFIGURE_ARGS="
 --with-x
+--with-qt=6
 --enable-link-all-dependencies
 --disable-openmp
 --with-blas=openblas
 --with-openssl=yes
 --with-libiconv-prefix=$TERMUX_PREFIX
+--disable-java
+ac_cv_header_glob_h=no
 ac_cv_func_getpwuid=no
 ac_cv_func_getpwent=no
 ac_cv_func_getpwnam=no
@@ -39,43 +36,41 @@ ac_cv_func_geteuid=no
 ac_cv_func_getlogin_r=no
 ac_cv_func_getrandom=no
 ac_cv_func_nl_langinfo=no
+gl_cv_have_weak=no
 "
+
+# FIXME: Diable for arm temporarily
+TERMUX_PKG_BLACKLISTED_ARCHES="arm"
 
 source $TERMUX_SCRIPTDIR/common-files/setup_toolchain_gcc.sh
 
-termux_step_pre_configure() {
-	_setup_toolchain_ndk_with_gfortran_11
-	autoreconf -fiv
-	LDFLAGS+="-Wl,-rpath,$TERMUX_PREFIX/lib/octave/$TERMUX_PKG_VERSION"
-	NDK_ARCH=$TERMUX_ARCH
-        test $NDK_ARCH == 'i686' && NDK_ARCH='i386'
-	if [ $NDK_ARCH == 'arm' ]; then
-		NDK_TRIPLET="${NDK_ARCH}-linux-androideabi"
-		GCC_TRIPLET="${NDK_ARCH}-linux-androideabi"
-	elif [ $NDK_ARCH == 'i386' ]; then
-		NDK_TRIPLET="${NDK_ARCH}-linux-android"
-		GCC_TRIPLET="i686-linux-android"
-	else
-		NDK_TRIPLET="${NDK_ARCH}-linux-android"
-		GCC_TRIPLET="${NDK_ARCH}-linux-android"
+termux_step_post_get_source() {
+	# Version guard
+	local ver_e=${TERMUX_PKG_VERSION#*:}
+	local ver_x=$(. $TERMUX_SCRIPTDIR/tur/octave/build.sh; echo ${TERMUX_PKG_VERSION#*:})
+	if [ "${ver_e}" != "${ver_x}" ]; then
+		termux_error_exit "Version mismatch between octave and octave-x."
 	fi
-	
-        # clang 13+ requires libunwind on Android.
-        cp "$TERMUX_STANDALONE_TOOLCHAIN/lib64/clang/"14.*"/lib/linux/$NDK_ARCH/libunwind.a" \
-	   "$TERMUX_PKG_BUILDDIR" || exit 1
-	cp "$GCC_STANDALONE_TOOLCHAIN/lib/gcc/$GCC_TRIPLET/"11.*/libgcc.a \
-	   "$TERMUX_PKG_BUILDDIR" || exit 1
-	cp "$GCC_STANDALONE_TOOLCHAIN/$GCC_TRIPLET/"lib*/libgfortran.a \
-	   "$TERMUX_PKG_BUILDDIR" || exit 1
-	LIBQUADMATH=
-	if [ $TERMUX_ARCH == 'i686' -o $TERMUX_ARCH == 'x86_64' ]; then
-		cp "$GCC_STANDALONE_TOOLCHAIN/$GCC_TRIPLET/"lib*/libquadmath.a \
-		   "$TERMUX_PKG_BUILDDIR" || exit 1
-		LIBQUADMATH="$TERMUX_PKG_BUILDDIR/libquadmath.a"
-	fi
-	export LIBS="-landroid-glob -L$TERMUX_PKG_BUILDDIR $TERMUX_PKG_BUILDDIR/libunwind.a $TERMUX_PKG_BUILDDIR/libgfortran.a $LIBQUADMATH $TERMUX_PKG_BUILDDIR/libgcc.a"
+}
 
-	## This is to allow the build script find the `moc` on cross-build host
-	# for Qt-GUI
-	#export PATH+=":${TERMUX_PREFIX}/opt/qt/cross/bin"
+termux_step_pre_configure() {
+	_setup_toolchain_ndk_gcc_11
+
+	LDFLAGS+=" -Wl,-rpath,$TERMUX_PREFIX/lib/octave/${TERMUX_PKG_VERSION#*:}"
+
+	# Use a wrapper to ignore `-static-openmp`
+	local _bin="$TERMUX_PKG_TMPDIR/_fake_bin"
+	mkdir -p $_bin
+	local _tool=
+	for _tool in CC CXX LD; do
+		local _cmd="$(eval echo \${$_tool})"
+		sed -e "s|@TERMUX_PREFIX@|${TERMUX_PREFIX}|g" \
+			-e "s|@COMPILER@|$(command -v $_cmd)|g" \
+			"$TERMUX_PKG_BUILDER_DIR"/wrapper.in \
+			> $TERMUX_PKG_TMPDIR/_fake_bin/$(basename $_cmd)
+		chmod +x $TERMUX_PKG_TMPDIR/_fake_bin/$(basename $_cmd)
+	done
+	export PATH="$TERMUX_PKG_TMPDIR/_fake_bin:$PATH"
+
+	export PATH="$TERMUX_PREFIX/opt/qt6/cross/bin:$PATH"
 }

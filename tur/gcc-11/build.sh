@@ -2,17 +2,16 @@ TERMUX_PKG_HOMEPAGE=http://gcc.gnu.org/
 TERMUX_PKG_DESCRIPTION="GNU C compiler"
 TERMUX_PKG_LICENSE="GPL-3.0"
 TERMUX_PKG_DEPENDS="binutils, libc++, libgmp, libmpfr, libmpc, libisl, zlib"
-TERMUX_PKG_VERSION=11.3.0
-TERMUX_PKG_REVISION=3
+TERMUX_PKG_VERSION=11.5.0
 TERMUX_PKG_MAINTAINER="@licy183"
 TERMUX_PKG_SRCURL=https://ftp.gnu.org/gnu/gcc/gcc-${TERMUX_PKG_VERSION}/gcc-${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=98438e6cc7294298b474cf0da7655d9a8c8b796421bb0210531c294a950374ed
+TERMUX_PKG_SHA256=5a447f9a2566d15376beece02270decec8b8c1fcb094b93cb335b23497d58117
 TERMUX_PKG_BREAKS="binutils-is-llvm"
 TERMUX_PKG_NO_STATICSPLIT=true
 TERMUX_PKG_EXTRA_CONFIGURE_ARGS+="\
 --enable-initfini-array
 --enable-default-pie
---enable-languages=c,c++,fortran
+--enable-languages=c,c++,fortran,ada
 --enable-lto
 --enable-host-shared
 --enable-host-libquadmath
@@ -73,6 +72,10 @@ termux_step_pre_configure() {
 
 	_setup_toolchain_ndk_gcc_11
 
+	# For GNAT build
+	env -i PATH="$PATH" sudo apt update
+	env -i PATH="$PATH" sudo apt install -y gnat-11
+
 	# Explicitly define __BIONIC__ and __ANDROID__API__
 	CFLAGS+=" -D__BIONIC__ -D__ANDROID_API__=$TERMUX_PKG_API_LEVEL"
 	CPPFLAGS+=" -D__BIONIC__ -D__ANDROID_API__=$TERMUX_PKG_API_LEVEL"
@@ -97,5 +100,5 @@ termux_step_post_make_install() {
 	# Copy the build spec file
 	cp $TERMUX_PKG_TMPDIR/specs $TERMUX_PREFIX/lib/gcc/$TERMUX_HOST_PLATFORM/$TERMUX_PKG_VERSION/
 	# Avoid extract `ndk-sysroot-gcc-compact` at building time.
-	TERMUX_PKG_DEPENDS+=", ndk-sysroot-gcc-compact"
+	TERMUX_PKG_DEPENDS+=", ndk-sysroot-gcc-compact (>= 26b-3)"
 }

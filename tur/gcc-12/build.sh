@@ -2,10 +2,10 @@ TERMUX_PKG_HOMEPAGE=http://gcc.gnu.org/
 TERMUX_PKG_DESCRIPTION="GNU C compiler"
 TERMUX_PKG_LICENSE="GPL-3.0"
 TERMUX_PKG_DEPENDS="binutils, libc++, libgmp, libmpfr, libmpc, libisl, zlib"
-TERMUX_PKG_VERSION=12.2.0
+TERMUX_PKG_VERSION=12.4.0
 TERMUX_PKG_MAINTAINER="@licy183"
 TERMUX_PKG_SRCURL=https://ftp.gnu.org/gnu/gcc/gcc-${TERMUX_PKG_VERSION}/gcc-${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=ac6b317eb4d25444d87cf29c0d141dedc1323a1833ec9995211b13e1a851261c
+TERMUX_PKG_SHA256=5a30de2be740062bb3ddd3fd13c9b1bb4584d8f85616d33f23a713439d714148
 TERMUX_PKG_BREAKS="binutils-is-llvm"
 TERMUX_PKG_NO_STATICSPLIT=true
 TERMUX_PKG_EXTRA_CONFIGURE_ARGS+="\
@@ -96,5 +96,5 @@ termux_step_post_make_install() {
 	# Copy the build spec file
 	cp $TERMUX_PKG_TMPDIR/specs $TERMUX_PREFIX/lib/gcc/$TERMUX_HOST_PLATFORM/$TERMUX_PKG_VERSION/
 	# Avoid extract `ndk-sysroot-gcc-compact` at building time.
-	TERMUX_PKG_DEPENDS+=", ndk-sysroot-gcc-compact"
+	TERMUX_PKG_DEPENDS+=", ndk-sysroot-gcc-compact (>= 26b-3)"
 }

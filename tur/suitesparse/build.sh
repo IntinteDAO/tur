@@ -2,13 +2,19 @@ TERMUX_PKG_HOMEPAGE=https://github.com/DrTimothyAldenDavis/SuiteSparse
 TERMUX_PKG_DESCRIPTION="A Suite of Sparse matrix packages."
 TERMUX_PKG_LICENSE="GPL-3.0"
 TERMUX_PKG_MAINTAINER="@termux-user-repository"
-TERMUX_PKG_VERSION=7.0.1
-TERMUX_PKG_SRCURL=https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/v${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=dc2f8d5c2657c120b30cce942f634ec08fc3a4b0b10e19d3eef7790b2bec8d1e
-TERMUX_PKG_DEPENDS="libopenblas, libgmp, libmpfr"
+TERMUX_PKG_VERSION="1:7.8.3"
+TERMUX_PKG_SRCURL=https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/v${TERMUX_PKG_VERSION#*:}.tar.gz
+TERMUX_PKG_SHA256=ce39b28d4038a09c14f21e02c664401be73c0cb96a9198418d6a98a7db73a259
+TERMUX_PKG_DEPENDS="libandroid-complex-math, blas-openblas, libopenblas, libgmp, libmpfr"
 TERMUX_PKG_BUILD_IN_SRC=true
 TERMUX_PKG_FORCE_CMAKE=true
-TERMUX_PKG_EXTRA_MAKE_ARGS="BLAS=-lopenblas LAPACK="
+TERMUX_PKG_AUTO_UPDATE=true
+TERMUX_PKG_EXTRA_CONFIGURE_ARGS="
+-DCMAKE_SYSTEM_NAME=Linux
+-DBLA_VENDOR=Generic
+-DALLOW_64BIT_BLAS=OFF
+-DGRAPHBLAS_CROSS_TOOLCHAIN_FLAGS_NATIVE=\"-DCMAKE_TOOLCHAIN_FILE=$TERMUX_PKG_BUILDER_DIR/graphblas-host-toolchain.cmake\"
+"
 
 source $TERMUX_SCRIPTDIR/common-files/setup_toolchain_gcc.sh
 
@@ -61,12 +67,47 @@ termux_step_make() {
 	CMAKE_OPTIONS+=" -DCMAKE_USE_SYSTEM_LIBRARIES=True"
 	CMAKE_OPTIONS+=" -DDOXYGEN_EXECUTABLE="
 	CMAKE_OPTIONS+=" -DBUILD_TESTING=OFF"
-	CMAKE_OPTIONS+=" $TERMUX_PKG_EXTRA_CONFIGURE_ARGS"
+	CMAKE_OPTIONS+=" $(echo $TERMUX_PKG_EXTRA_CONFIGURE_ARGS)"
 
-	make -j $TERMUX_MAKE_PROCESSES $TERMUX_PKG_EXTRA_MAKE_ARGS \
-		CMAKE_OPTIONS="$CMAKE_OPTIONS"
+	make -j $TERMUX_PKG_MAKE_PROCESSES \
+		CMAKE_OPTIONS="$CMAKE_OPTIONS" JOBS=$TERMUX_PKG_MAKE_PROCESSES
 }
 
 termux_step_make_install() {
-	make install INSTALL=$TERMUX_PREFIX $TERMUX_PKG_EXTRA_MAKE_ARGS
+	make install INSTALL=$TERMUX_PREFIX
+}
+
+termux_step_post_massage() {
+	# Do not forget to bump revision of reverse dependencies and rebuild them
+	# after SOVERSION is changed.
+	# local _SOVERSION_GUARD_FILES=$(find lib/ | grep -E '\.so\.[0-9]+$' | sort)
+	local _SOVERSION_GUARD_FILES="
+lib/libamd.so.3
+lib/libbtf.so.2
+lib/libcamd.so.3
+lib/libccolamd.so.3
+lib/libcholmod.so.5
+lib/libcolamd.so.3
+lib/libcxsparse.so.4
+lib/libgraphblas.so.9
+lib/libklu.so.2
+lib/libklu_cholmod.so.2
+lib/liblagraph.so.1
+lib/liblagraphx.so.1
+lib/libldl.so.3
+lib/libparu.so.1
+lib/librbio.so.4
+lib/libspex.so.3
+lib/libspexpython.so.3
+lib/libspqr.so.4
+lib/libsuitesparse_mongoose.so.3
+lib/libsuitesparseconfig.so.7
+lib/libumfpack.so.6
+"
+	local f
+	for f in ${_SOVERSION_GUARD_FILES}; do
+		if [ ! -e "${f}" ]; then
+			termux_error_exit "SOVERSION guard check failed."
+		fi
+	done
 }

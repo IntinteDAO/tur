@@ -2,10 +2,9 @@ TERMUX_PKG_HOMEPAGE=https://github.com/zan8in/afrog
 TERMUX_PKG_DESCRIPTION="A tool for finding vulnerabilities"
 TERMUX_PKG_LICENSE="MIT"
 TERMUX_PKG_MAINTAINER="@UtermuxBlog"
-TERMUX_PKG_VERSION="1.3.9"
-TERMUX_PKG_REVISION=1
+TERMUX_PKG_VERSION="3.1.2"
 TERMUX_PKG_SRCURL=https://github.com/zan8in/afrog/archive/refs/tags/v${TERMUX_PKG_VERSION}.tar.gz
-TERMUX_PKG_SHA256=7abdc28acbdc3975a50672924f4510a6f9483960f40d6727a2b9386a2f6fc479
+TERMUX_PKG_SHA256=00b8d4718f72d5b9f62b0ec156e9ee34bdd5370fee351f3f70daa783d156c063
 TERMUX_PKG_BUILD_IN_SRC=true
 TERMUX_PKG_AUTO_UPDATE=true
 
@@ -17,7 +16,7 @@ termux_step_pre_configure() {
 }
 
 termux_step_make() {
-	CGO_ENABLED=0 go build -v -a -o afrog cmd/afrog/main.go
+	go build -v -a -o afrog cmd/afrog/main.go
 }
 
 termux_step_make_install() {

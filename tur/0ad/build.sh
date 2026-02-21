@@ -17,7 +17,7 @@ termux_setup_nodejs() {
 
 termux_step_post_get_source() {
 	echo "TERMUX: Preparing 0.28.0-rc5 with data assets..."
-
+	
 	local FCOLLADA_BASE="libraries/source/fcollada"
 	mkdir -p "$FCOLLADA_BASE"
 	if [ ! -f "$FCOLLADA_BASE/fcollada-28209.tar.xz" ]; then
@@ -27,12 +27,12 @@ termux_step_post_get_source() {
 
 	# Download and Extract Data Tarball (Crucial for assets)
 	echo "TERMUX: Downloading game data (RC5)..."
-	local DATA_URL="https://releases.wildfiregames.com/rc/0ad-0.28.0-rc5-unix-data.tar.gz"
-	local DATA_FILE=$TERMUX_PKG_CACHEDIR/0ad-0.28.0-rc5-unix-data.tar.gz
-	termux_download $DATA_URL $DATA_FILE eefa3a1646ffa94e290f9dfd7927c01becfd5a8603cd90f3146f6f09ba105fbb
-
-	echo "TERMUX: Extracting data assets..."
-	tar -xf "$DATA_FILE" -C "$TERMUX_PKG_SRCDIR" --strip-components=1
+	# local DATA_URL="https://releases.wildfiregames.com/rc/0ad-0.28.0-rc5-unix-data.tar.gz"
+	# local DATA_FILE=$TERMUX_PKG_CACHEDIR/0ad-0.28.0-rc5-unix-data.tar.gz
+	# termux_download $DATA_URL $DATA_FILE eefa3a1646ffa94e290f9dfd7927c01becfd5a8603cd90f3146f6f09ba105fbb
+	
+	# echo "TERMUX: Extracting data assets..."
+	# tar -xf "$DATA_FILE" -C "$TERMUX_PKG_SRCDIR" --strip-components=1
 
 #	find . -name "ufilesystem.cpp" -exec sed -i 's/#\s*if\s*OS_ANDROID/#if 0/g' {} +
 	find . -type f -name "*.h" -exec sed -i 's/#error Your compiler is trying to use an incorrect major version/#warning Bypassing SM version check/g' {} +
@@ -44,6 +44,14 @@ termux_step_post_get_source() {
 		sed -i 's/T::getcwd/getcwd/g' "$EXEPATH_CPP"
 		sed -i '/#include "mocks\//d' "$EXEPATH_CPP"
 		sed -i "s|libpath = \"/usr/lib/0ad/\"|libpath = \"$TERMUX_PREFIX/lib/0ad/\"|g" "$EXEPATH_CPP"
+	fi
+
+	# SpiderMonkey Android JIT Crash Fix
+	local SCRIPT_CX_CPP="source/scriptinterface/ScriptContext.cpp"
+	if [ -f "$SCRIPT_CX_CPP" ]; then
+		sed -i 's/JSJITCOMPILER_ION_ENABLE, 1/JSJITCOMPILER_ION_ENABLE, 0/g' "$SCRIPT_CX_CPP"
+		sed -i 's/JSJITCOMPILER_BASELINE_ENABLE, 1/JSJITCOMPILER_BASELINE_ENABLE, 0/g' "$SCRIPT_CX_CPP"
+		sed -i 's/\.setStrictMode(true);/.setStrictMode(true).setAsmJS(false).setWasm(false).setDisableIon();/g' "$SCRIPT_CX_CPP"
 	fi
 
 	mkdir -p libraries/source/cxxtest-4.4/cxxtest
